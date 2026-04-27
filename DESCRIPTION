@@ -1,0 +1,30 @@
+Package: okpal
+Title: OKLAB/OKLCH-Based Perceptual Color Interpolation and Colorblind-Safe Palette Generation
+Version: 0.1.0
+Authors@R: 
+    person("Jun-yeong", "Heo", role = c("aut", "cre"),
+           email = "fleatinum@gmail.com")
+Description: Attempt to provide perceptually uniform color gradients by interpolating 
+    in OKLAB/OKLCH color spaces via the 'farver' package, avoiding the muddy 
+    mid-tones caused by RGB interpolation. Also includes tools for generating, 
+    adjusting, and checking colorblind-safe palettes using CVD simulation 
+    from 'colorspace'. Provides ready-to-use scale functions for 'ggplot2', 
+    'pheatmap', and 'ComplexHeatmap'.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    farver (>= 2.1.0),
+    colorspace,
+    ggplot2,
+    grDevices
+Suggests:
+    pheatmap,
+    ComplexHeatmap,
+    circlize,
+    patchwork,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+URL: https://github.com/jun-yeong-heo/okpal
+BugReports: https://github.com/jun-yeong-heo/okpal/issues
