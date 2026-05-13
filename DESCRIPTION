@@ -1,6 +1,6 @@
 Package: okpal
 Title: OKLAB/OKLCH-Based Perceptual Color Interpolation and Colorblind-Safe Palette Generation
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: 
     person("Jun-yeong", "Heo", role = c("aut", "cre"),
            email = "fleatinum@gmail.com")
@@ -18,7 +18,8 @@ Imports:
     farver (>= 2.1.0),
     colorspace,
     ggplot2,
-    grDevices
+    graphics,
+    stats
 Suggests:
     pheatmap,
     ComplexHeatmap,

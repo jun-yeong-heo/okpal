@@ -79,7 +79,7 @@ Heatmap(mat, col = col_fn)
 
 ```r
 # Generate a colorblind-safe qualitative palette
-safe_pal <- cb_safe_palette(6)
+safe_pal <- cb_safe_palette(4)
 plot_palette(safe_pal)
 
 # Check if an existing palette is safe
@@ -95,6 +95,30 @@ plot_palette(adjusted, main = "Adjusted")
 cb_safe_nearest("#00CC00")
 ```
 
+### When the strict ring is full
+
+`cb_safe_palette()` and `cb_contrast()` search a single OKLCH ring at
+fixed lightness and chroma. For large `n` (typically `n >= 6` with
+default `min_dist`) that ring runs out of room and the function warns
+and returns fewer colours. The `*_relaxed` variants progressively
+widen the search along `L` and `C` to fill the request, trading a
+small amount of visual cohesion for completeness:
+
+```r
+# Strict: 5 / 8 with a warning
+cb_safe_palette(8)
+
+# Relaxed: full 8, slightly less uniform in L/C
+cb_safe_palette_relaxed(8, L_tol = 0.15, C_tol = 0.05)
+
+# Same trade-off available for contrast palettes
+existing <- cb_safe_palette(3)
+cb_contrast_relaxed(existing, 3, L_tol = 0.2, C_tol = 0.07)
+```
+
+With `L_tol = 0, C_tol = 0` the relaxed variants are identical to the
+strict ones — backward compatible.
+
 ## Function reference
 
 | Function | Description |
@@ -105,6 +129,8 @@ cb_safe_nearest("#00CC00")
 | `oklch_seq()` | Sequential palette (OKLCH) |
 | `oklch_div()` | Diverging palette (OKLCH) |
 | `oklch_qualitative()` | Qualitative palette (OKLCH) |
+| `okpal_from()` | Palette built around a single base colour |
+| `okpal_contrast()` | New palette maximally distant from an existing one |
 | `scale_colour_oklab()` | ggplot2 continuous sequential scale |
 | `scale_fill_oklab()` | ggplot2 continuous sequential fill |
 | `scale_colour_oklab_div()` | ggplot2 continuous diverging scale |
@@ -116,9 +142,13 @@ cb_safe_nearest("#00CC00")
 | `cheatmap_oklab()` | colorRamp2 object for ComplexHeatmap (sequential) |
 | `cheatmap_oklab_div()` | colorRamp2 object for ComplexHeatmap (diverging) |
 | `cb_safe_palette()` | Generate colorblind-safe palette |
+| `cb_safe_palette_relaxed()` | Same, with progressive L/C widening for larger `n` |
 | `cb_safe_nearest()` | Find nearest colorblind-safe colour |
 | `cb_adjust()` | Adjust palette for colorblind safety |
 | `cb_check()` | Diagnose palette colorblind safety |
+| `cb_from()` | Colorblind-safe variant of `okpal_from()` |
+| `cb_contrast()` | Colorblind-safe variant of `okpal_contrast()` |
+| `okpal_contrast_relaxed()` / `cb_contrast_relaxed()` | Variants with progressive L/C widening |
 | `plot_palette()` | Preview palette strip |
 
 ## Dependencies
@@ -126,7 +156,9 @@ cb_safe_nearest("#00CC00")
 - [farver](https://cran.r-project.org/package=farver) (>= 2.1.0) — OKLAB/OKLCH conversion
 - [colorspace](https://cran.r-project.org/package=colorspace) — CVD simulation
 - [ggplot2](https://cran.r-project.org/package=ggplot2) — scale functions
-- [circlize](https://cran.r-project.org/package=circlize) — ComplexHeatmap support (suggested)
+- [pheatmap](https://cran.r-project.org/package=pheatmap) — pheatmap helpers (suggested)
+- [ComplexHeatmap](https://bioconductor.org/packages/ComplexHeatmap/) — ComplexHeatmap helpers (suggested)
+- [circlize](https://cran.r-project.org/package=circlize) — required when using `cheatmap_*()` (suggested)
 
 ## License
 
