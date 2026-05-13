@@ -4,7 +4,12 @@
 \alias{pheatmap_oklab}
 \title{Generate colour vector for pheatmap using OKLAB/OKLCH interpolation}
 \usage{
-pheatmap_oklab(low = "#132B43", high = "#56B1F7", n = 256, space = "oklab")
+pheatmap_oklab(
+  low = "#132B43",
+  high = "#56B1F7",
+  n = 256,
+  space = c("oklab", "oklch")
+)
 }
 \arguments{
 \item{low}{Hex colour for the low end.}

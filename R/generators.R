@@ -26,7 +26,10 @@
 #' plot_palette(okpal_from("#3366CC", n = 9))
 #' plot_palette(okpal_from("#3366CC", n = 9, hue_range = 45))
 okpal_from <- function(base, n = 8, hue_range = 0,
-                       L_range = c(0.25, 0.95), space = "oklch") {
+                       L_range = c(0.25, 0.95),
+                       space = c("oklch", "oklab")) {
+  .check_hex(base, "base")
+  space <- match.arg(space)
   lch <- farver::decode_colour(base, to = "oklch")
   base_L <- lch[1, "l"]
   base_C <- lch[1, "c"]
@@ -72,8 +75,10 @@ okpal_from <- function(base, n = 8, hue_range = 0,
 #' cb_from("#00CC00", n = 6)
 #' cb_from("#3366CC", n = 6, hue_range = 40)
 cb_from <- function(base, n = 8, hue_range = 0,
-                    L_range = c(0.25, 0.95), space = "oklch",
+                    L_range = c(0.25, 0.95),
+                    space = c("oklch", "oklab"),
                     severity = 1, min_dist = 0.05) {
+  space <- match.arg(space)
   pal <- okpal_from(base, n = n, hue_range = hue_range,
                     L_range = L_range, space = space)
   cb_adjust(pal, severity = severity, min_dist = min_dist)
@@ -94,64 +99,156 @@ cb_from <- function(base, n = 8, hue_range = 0,
 #' @param C Chroma for new colours. If \code{NULL} (default), uses the
 #'   median chroma of \code{existing}.
 #' @return Character vector of hex colour strings.
+#'
+#' @section Limitations:
+#' Candidates are drawn from a single ring at fixed lightness and
+#' chroma (the medians of \code{existing}), so success depends on
+#' how \code{existing} is shaped in colour space.
+#'
+#' Works well when \code{existing} is clustered in one region (e.g.
+#' sequential / diverging palettes such as viridis, or any palette
+#' whose colours span a wide range of lightness or chroma): the
+#' candidate ring sits far from \code{existing} and most hues are
+#' admissible.
+#'
+#' Cannot find well-separated candidates when \code{existing} is
+#' already spread evenly around the candidate ring (e.g. Dark2 and
+#' other qualitative palettes, palettes from
+#' \code{\link{oklch_qualitative}}): there is no hue left that is far
+#' enough from every existing colour. Use
+#' \code{\link{okpal_contrast_relaxed}} to widen the search to nearby
+#' L/C values.
+#' @seealso [okpal_contrast_relaxed()]
 #' @export
 #' @examples
 #' pal_a <- oklch_qualitative(4)
 #' pal_b <- okpal_contrast(pal_a, 4)
 #' plot_palette(c(pal_a, pal_b), main = "Original + Contrast")
 okpal_contrast <- function(existing, n = NULL, L = NULL, C = NULL) {
+  .check_hex(existing, "existing")
   if (is.null(n)) n <- length(existing)
 
-  # Get L/C from existing palette if not specified
   exist_lch <- farver::decode_colour(existing, to = "oklch")
   if (is.null(L)) L <- stats::median(exist_lch[, "l"])
   if (is.null(C)) C <- stats::median(exist_lch[, "c"])
 
-  # OKLAB coordinates of existing colours for distance computation
   exist_lab <- farver::decode_colour(existing, to = "oklab")
-
-  # Generate all candidate hues
-  all_hues <- seq(0, 359, by = 1)
-  cand_mat <- cbind(l = rep(L, 360), c = rep(C, 360), h = all_hues)
-  cand_hex <- farver::encode_colour(cand_mat, from = "oklch")
+  cand_hex <- .build_ring_grid(L, C, 0, 0)
   cand_lab <- farver::decode_colour(cand_hex, to = "oklab")
 
-  # Greedy selection: maximise minimum distance to existing + selected
-  selected <- integer(0)
-  available <- seq_len(360)
+  selected <- .greedy_lab_contrast(cand_lab, exist_lab, n)
+  cand_hex[selected]
+}
 
-  for (step in seq_len(n)) {
-    best_idx <- NA
-    best_min_d <- -Inf
+#' Generate a contrast palette with relaxed L/C
+#'
+#' A variant of [okpal_contrast()] that widens the L/C search space
+#' progressively when the default single ring cannot fit \code{n}
+#' colours far enough from \code{existing}. Trades a small amount of
+#' visual cohesion with \code{existing} for being able to satisfy
+#' \code{n}. Step 1 is identical to \code{okpal_contrast}; later steps
+#' search a wider grid.
+#'
+#' @inheritParams okpal_contrast
+#' @param L_tol Maximum lightness deviation from the centre (default 0.1).
+#' @param C_tol Maximum chroma deviation from the centre (default 0.05).
+#' @param tol_steps Number of progressive widening steps (default 5).
+#' @return Character vector of hex colour strings (length \code{n}).
+#' @seealso [okpal_contrast()]
+#' @export
+okpal_contrast_relaxed <- function(existing, n = NULL, L = NULL, C = NULL,
+                                   L_tol = 0.1, C_tol = 0.05,
+                                   tol_steps = 5L) {
+  .check_hex(existing, "existing")
+  stopifnot(L_tol >= 0, C_tol >= 0, tol_steps >= 1L)
+  if (is.null(n)) n <- length(existing)
 
-    for (idx in available) {
-      # Distance to all existing colours
-      d_exist <- apply(exist_lab, 1, function(row) {
-        sqrt(sum((cand_lab[idx, ] - row)^2))
-      })
+  exist_lch <- farver::decode_colour(existing, to = "oklch")
+  if (is.null(L)) L <- stats::median(exist_lch[, "l"])
+  if (is.null(C)) C <- stats::median(exist_lch[, "c"])
+  exist_lab <- farver::decode_colour(existing, to = "oklab")
 
-      # Distance to already-selected new colours
-      d_selected <- if (length(selected) > 0) {
-        vapply(selected, function(s) {
-          sqrt(sum((cand_lab[idx, ] - cand_lab[s, ])^2))
-        }, numeric(1))
-      } else {
-        Inf
-      }
+  # okpal_contrast always returns n (no threshold). The progressive
+  # widening here only affects *which* n colours are chosen — later
+  # steps just provide a richer pool. We accept the first step's
+  # result and stop, matching strict semantics for L_tol=C_tol=0.
+  cand_hex <- .build_ring_grid(L, C,
+                               .tol_offsets(L_tol, tol_steps, tol_steps),
+                               .tol_offsets(C_tol, tol_steps, tol_steps))
+  cand_lab <- farver::decode_colour(cand_hex, to = "oklab")
+  selected <- .greedy_lab_contrast(cand_lab, exist_lab, n)
+  cand_hex[selected]
+}
 
-      min_d <- min(c(d_exist, d_selected))
+#' Colorblind-safe contrast palette with relaxed L/C
+#'
+#' A variant of [cb_contrast()] that widens the L/C search space
+#' progressively when the default single ring cannot satisfy
+#' \code{min_dist} for all \code{n} colours. Returns the first step's
+#' result that places \code{n} colours, or the best partial result
+#' with a warning. Step 1 is identical to \code{cb_contrast}.
+#'
+#' @inheritParams cb_contrast
+#' @param L_tol Maximum lightness deviation from the centre (default 0.1).
+#' @param C_tol Maximum chroma deviation from the centre (default 0.05).
+#' @param tol_steps Number of progressive widening steps (default 5).
+#' @return Character vector of hex colour strings (length \code{<= n}).
+#' @seealso [cb_contrast()]
+#' @export
+cb_contrast_relaxed <- function(existing, n = NULL, L = NULL, C = NULL,
+                                severity = 1, min_dist = 0.05,
+                                L_tol = 0.1, C_tol = 0.05,
+                                tol_steps = 5L) {
+  .check_hex(existing, "existing")
+  stopifnot(L_tol >= 0, C_tol >= 0, tol_steps >= 1L)
+  if (is.null(n)) n <- length(existing)
 
-      if (min_d > best_min_d) {
-        best_min_d <- min_d
-        best_idx <- idx
-      }
+  exist_lch <- farver::decode_colour(existing, to = "oklch")
+  if (is.null(L)) L <- stats::median(exist_lch[, "l"])
+  if (is.null(C)) C <- stats::median(exist_lch[, "c"])
+
+  exist_d_lab <- farver::decode_colour(
+    colorspace::deutan(existing, severity = severity), to = "oklab"
+  )
+  exist_p_lab <- farver::decode_colour(
+    colorspace::protan(existing, severity = severity), to = "oklab"
+  )
+
+  best_sel <- integer(0)
+  best_hex <- character(0)
+  reached <- 0L
+
+  for (k in seq_len(tol_steps)) {
+    cand_hex <- .build_ring_grid(L, C,
+                                 .tol_offsets(L_tol, tol_steps, k),
+                                 .tol_offsets(C_tol, tol_steps, k))
+    cand_d_lab <- farver::decode_colour(
+      colorspace::deutan(cand_hex, severity = severity), to = "oklab"
+    )
+    cand_p_lab <- farver::decode_colour(
+      colorspace::protan(cand_hex, severity = severity), to = "oklab"
+    )
+    sel <- .greedy_cvd_contrast(cand_d_lab, cand_p_lab,
+                                exist_d_lab, exist_p_lab,
+                                n, min_dist)
+    if (length(sel) > length(best_sel)) {
+      best_sel <- sel
+      best_hex <- cand_hex
+      reached <- k
     }
-
-    selected <- c(selected, best_idx)
-    available <- available[available != best_idx]
+    if (length(sel) >= n) break
   }
 
-  cand_hex[selected]
+  if (length(best_sel) < n) {
+    warning(
+      sprintf(
+        "Reached step %d/%d (L_tol=%g, C_tol=%g); placed %d / %d colours.",
+        reached, tol_steps, L_tol, C_tol, length(best_sel), n
+      ),
+      call. = FALSE
+    )
+  }
+  best_hex[best_sel]
 }
 
 #' Generate a colorblind-safe palette distant from an existing palette
@@ -165,6 +262,18 @@ okpal_contrast <- function(existing, n = NULL, L = NULL, C = NULL) {
 #' @param min_dist Minimum OKLAB distance after CVD simulation
 #'   (default 0.05).
 #' @return Character vector of hex colour strings.
+#'
+#' @section Limitations:
+#' Inherits the same shape constraint as [okpal_contrast()]: candidates
+#' are drawn from a single ring at fixed lightness and chroma. When
+#' \code{existing} is already spread evenly around that ring (e.g.
+#' Dark2-style qualitative palettes, palettes from
+#' \code{\link{cb_safe_palette}} or \code{\link{oklch_qualitative}}),
+#' \code{min_dist} cannot be satisfied for every requested colour. The
+#' function then warns and returns fewer than \code{n} colours.
+#' Sequential / diverging inputs (e.g. viridis) generally succeed.
+#' Use \code{\link{cb_contrast_relaxed}} to widen the search.
+#' @seealso [cb_contrast_relaxed()]
 #' @export
 #' @examples
 #' pal_a <- cb_safe_palette(4)
@@ -172,79 +281,37 @@ okpal_contrast <- function(existing, n = NULL, L = NULL, C = NULL) {
 #' plot_palette(c(pal_a, pal_b), main = "Original + CB Contrast")
 cb_contrast <- function(existing, n = NULL, L = NULL, C = NULL,
                         severity = 1, min_dist = 0.05) {
+  .check_hex(existing, "existing")
   if (is.null(n)) n <- length(existing)
 
-  # Get L/C from existing palette if not specified
   exist_lch <- farver::decode_colour(existing, to = "oklch")
   if (is.null(L)) L <- stats::median(exist_lch[, "l"])
   if (is.null(C)) C <- stats::median(exist_lch[, "c"])
 
-  # Existing colours under CVD simulation
-  exist_deutan <- colorspace::deutan(existing, severity = severity)
-  exist_protan <- colorspace::protan(existing, severity = severity)
-  exist_deutan_lab <- farver::decode_colour(exist_deutan, to = "oklab")
-  exist_protan_lab <- farver::decode_colour(exist_protan, to = "oklab")
+  exist_d_lab <- farver::decode_colour(
+    colorspace::deutan(existing, severity = severity), to = "oklab"
+  )
+  exist_p_lab <- farver::decode_colour(
+    colorspace::protan(existing, severity = severity), to = "oklab"
+  )
 
-  # Generate all candidates and their CVD versions
-  all_hues <- seq(0, 359, by = 1)
-  cand_mat <- cbind(l = rep(L, 360), c = rep(C, 360), h = all_hues)
-  cand_hex <- farver::encode_colour(cand_mat, from = "oklch")
+  cand_hex <- .build_ring_grid(L, C, 0, 0)
+  cand_d_lab <- farver::decode_colour(
+    colorspace::deutan(cand_hex, severity = severity), to = "oklab"
+  )
+  cand_p_lab <- farver::decode_colour(
+    colorspace::protan(cand_hex, severity = severity), to = "oklab"
+  )
 
-  cand_deutan <- colorspace::deutan(cand_hex, severity = severity)
-  cand_protan <- colorspace::protan(cand_hex, severity = severity)
-  cand_deutan_lab <- farver::decode_colour(cand_deutan, to = "oklab")
-  cand_protan_lab <- farver::decode_colour(cand_protan, to = "oklab")
-
-  # Greedy selection
-  selected <- integer(0)
-  available <- seq_len(360)
-
-  for (step in seq_len(n)) {
-    best_idx <- NA
-    best_min_d <- -Inf
-
-    for (idx in available) {
-      # CVD distances to existing palette
-      d_exist_d <- apply(exist_deutan_lab, 1, function(row) {
-        sqrt(sum((cand_deutan_lab[idx, ] - row)^2))
-      })
-      d_exist_p <- apply(exist_protan_lab, 1, function(row) {
-        sqrt(sum((cand_protan_lab[idx, ] - row)^2))
-      })
-
-      # CVD distances to already-selected
-      if (length(selected) > 0) {
-        d_sel_d <- vapply(selected, function(s) {
-          sqrt(sum((cand_deutan_lab[idx, ] - cand_deutan_lab[s, ])^2))
-        }, numeric(1))
-        d_sel_p <- vapply(selected, function(s) {
-          sqrt(sum((cand_protan_lab[idx, ] - cand_protan_lab[s, ])^2))
-        }, numeric(1))
-      } else {
-        d_sel_d <- Inf
-        d_sel_p <- Inf
-      }
-
-      min_d <- min(c(d_exist_d, d_exist_p, d_sel_d, d_sel_p))
-
-      if (min_d > best_min_d) {
-        best_min_d <- min_d
-        best_idx <- idx
-      }
-    }
-
-    if (best_min_d < min_dist) {
-      warning(
-        sprintf("Could only place %d colours above min_dist threshold (requested %d)",
-                length(selected), n),
-        call. = FALSE
-      )
-      break
-    }
-
-    selected <- c(selected, best_idx)
-    available <- available[available != best_idx]
+  selected <- .greedy_cvd_contrast(cand_d_lab, cand_p_lab,
+                                   exist_d_lab, exist_p_lab,
+                                   n, min_dist)
+  if (length(selected) < n) {
+    warning(
+      sprintf("Could only place %d colours above min_dist threshold (requested %d)",
+              length(selected), n),
+      call. = FALSE
+    )
   }
-
   cand_hex[selected]
 }

@@ -10,7 +10,7 @@ scale_colour_oklab(
   low = "#132B43",
   high = "#56B1F7",
   n = 256,
-  space = "oklab",
+  space = c("oklab", "oklch"),
   ...
 )
 
@@ -18,7 +18,7 @@ scale_color_oklab(
   low = "#132B43",
   high = "#56B1F7",
   n = 256,
-  space = "oklab",
+  space = c("oklab", "oklch"),
   ...
 )
 
@@ -26,7 +26,7 @@ scale_fill_oklab(
   low = "#132B43",
   high = "#56B1F7",
   n = 256,
-  space = "oklab",
+  space = c("oklab", "oklch"),
   ...
 )
 }

@@ -38,8 +38,24 @@ Same as \code{\link[=okpal_contrast]{okpal_contrast()}} but ensures the new pale
 distinguishable from both the existing palette and itself under
 CVD simulation.
 }
+\section{Limitations}{
+
+Inherits the same shape constraint as \code{\link[=okpal_contrast]{okpal_contrast()}}: candidates
+are drawn from a single ring at fixed lightness and chroma. When
+\code{existing} is already spread evenly around that ring (e.g.
+Dark2-style qualitative palettes, palettes from
+\code{\link{cb_safe_palette}} or \code{\link{oklch_qualitative}}),
+\code{min_dist} cannot be satisfied for every requested colour. The
+function then warns and returns fewer than \code{n} colours.
+Sequential / diverging inputs (e.g. viridis) generally succeed.
+Use \code{\link{cb_contrast_relaxed}} to widen the search.
+}
+
 \examples{
 pal_a <- cb_safe_palette(4)
 pal_b <- cb_contrast(pal_a, 4)
 plot_palette(c(pal_a, pal_b), main = "Original + CB Contrast")
+}
+\seealso{
+\code{\link[=cb_contrast_relaxed]{cb_contrast_relaxed()}}
 }

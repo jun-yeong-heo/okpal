@@ -9,7 +9,7 @@ cheatmap_oklab_div(
   low = "#2166AC",
   mid = "#F7F7F7",
   high = "#B2182B",
-  space = "oklab"
+  space = c("oklab", "oklch")
 )
 }
 \arguments{

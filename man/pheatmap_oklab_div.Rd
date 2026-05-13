@@ -9,7 +9,7 @@ pheatmap_oklab_div(
   mid = "#F7F7F7",
   high = "#B2182B",
   n = 256,
-  space = "oklab"
+  space = c("oklab", "oklch")
 )
 }
 \arguments{

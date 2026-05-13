@@ -27,7 +27,22 @@ distinguishable under deuteranopia and protanopia simulation.
 Colours are placed by maximising minimum pairwise OKLAB distance
 after CVD simulation.
 }
+\section{Limitations}{
+
+Candidates are sampled from a single ring at fixed \code{L}/\code{C}
+and only the hue is varied. As \code{n} grows the ring becomes
+crowded under CVD simulation; beyond a certain point no hue is far
+enough from every previously placed colour. The function then warns
+and returns fewer than \code{n} colours. With defaults this typically
+starts to fail around \code{n = 5}-\code{6}.
+Use \code{\link{cb_safe_palette_relaxed}} to widen the L/C search
+space and trade a small amount of cohesion for completeness.
+}
+
 \examples{
 cb_safe_palette(6)
 plot_palette(cb_safe_palette(8))
+}
+\seealso{
+\code{\link[=cb_safe_palette_relaxed]{cb_safe_palette_relaxed()}}
 }

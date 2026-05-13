@@ -4,7 +4,12 @@
 \alias{cheatmap_oklab}
 \title{Generate a colorRamp2-compatible function for ComplexHeatmap}
 \usage{
-cheatmap_oklab(breaks, low = "#132B43", high = "#56B1F7", space = "oklab")
+cheatmap_oklab(
+  breaks,
+  low = "#132B43",
+  high = "#56B1F7",
+  space = c("oklab", "oklch")
+)
 }
 \arguments{
 \item{breaks}{Numeric vector of breakpoints.}

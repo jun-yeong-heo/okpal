@@ -13,6 +13,7 @@
 #' plot_palette(oklab_seq("#1B0A55", "#FDE725", n = 12))
 #' plot_palette(oklch_qualitative(8))
 plot_palette <- function(colours, labels = NULL, main = NULL) {
+  .check_hex(colours, "colours")
   n <- length(colours)
   if (is.null(labels)) labels <- (n <= 20)
 

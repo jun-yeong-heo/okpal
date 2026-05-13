@@ -9,7 +9,7 @@ cb_from(
   n = 8,
   hue_range = 0,
   L_range = c(0.25, 0.95),
-  space = "oklch",
+  space = c("oklch", "oklab"),
   severity = 1,
   min_dist = 0.05
 )

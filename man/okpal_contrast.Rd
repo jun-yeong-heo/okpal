@@ -27,8 +27,32 @@ the colours in \code{existing} in OKLAB space. Lightness and chroma
 are matched to the existing palette so the two sets look visually
 cohesive while remaining distinguishable.
 }
+\section{Limitations}{
+
+Candidates are drawn from a single ring at fixed lightness and
+chroma (the medians of \code{existing}), so success depends on
+how \code{existing} is shaped in colour space.
+
+Works well when \code{existing} is clustered in one region (e.g.
+sequential / diverging palettes such as viridis, or any palette
+whose colours span a wide range of lightness or chroma): the
+candidate ring sits far from \code{existing} and most hues are
+admissible.
+
+Cannot find well-separated candidates when \code{existing} is
+already spread evenly around the candidate ring (e.g. Dark2 and
+other qualitative palettes, palettes from
+\code{\link{oklch_qualitative}}): there is no hue left that is far
+enough from every existing colour. Use
+\code{\link{okpal_contrast_relaxed}} to widen the search to nearby
+L/C values.
+}
+
 \examples{
 pal_a <- oklch_qualitative(4)
 pal_b <- okpal_contrast(pal_a, 4)
 plot_palette(c(pal_a, pal_b), main = "Original + Contrast")
+}
+\seealso{
+\code{\link[=okpal_contrast_relaxed]{okpal_contrast_relaxed()}}
 }

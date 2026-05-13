@@ -11,7 +11,7 @@
 #' @examples
 #' oklab_seq("#1B0A55", "#FDE725", n = 10)
 oklab_seq <- function(low, high, n = 256) {
-
+  .check_hex(low, "low"); .check_hex(high, "high")
   interp_oklab(low, high, n)
 }
 
@@ -29,6 +29,7 @@ oklab_seq <- function(low, high, n = 256) {
 #' @examples
 #' oklab_div("#2166AC", "#F7F7F7", "#B2182B", n = 11)
 oklab_div <- function(low, mid, high, n = 256) {
+  .check_hex(low, "low"); .check_hex(mid, "mid"); .check_hex(high, "high")
   interp_multi(c(low, mid, high), n, space = "oklab")
 }
 
@@ -43,6 +44,7 @@ oklab_div <- function(low, mid, high, n = 256) {
 #' @examples
 #' oklab_multi(c("#440154", "#21918C", "#FDE725"), n = 15)
 oklab_multi <- function(colours, n = 256) {
+  .check_hex(colours, "colours")
   interp_multi(colours, n, space = "oklab")
 }
 
@@ -58,6 +60,7 @@ oklab_multi <- function(colours, n = 256) {
 #' @examples
 #' oklch_seq("#FF0000", "#0000FF", n = 10)
 oklch_seq <- function(low, high, n = 256) {
+  .check_hex(low, "low"); .check_hex(high, "high")
   interp_oklch(low, high, n)
 }
 
@@ -69,6 +72,7 @@ oklch_seq <- function(low, high, n = 256) {
 #' @examples
 #' oklch_div("#2166AC", "#F7F7F7", "#B2182B", n = 11)
 oklch_div <- function(low, mid, high, n = 256) {
+  .check_hex(low, "low"); .check_hex(mid, "mid"); .check_hex(high, "high")
   interp_multi(c(low, mid, high), n, space = "oklch")
 }
 

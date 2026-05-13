@@ -17,7 +17,8 @@
 #'   geom_tile() +
 #'   scale_fill_oklab(low = "#1B0A55", high = "#FDE725")
 scale_colour_oklab <- function(low = "#132B43", high = "#56B1F7",
-                               n = 256, space = "oklab", ...) {
+                               n = 256, space = c("oklab", "oklch"), ...) {
+  space <- match.arg(space)
   pal <- if (space == "oklch") oklch_seq(low, high, n) else oklab_seq(low, high, n)
   ggplot2::scale_colour_gradientn(colours = pal, ...)
 }
@@ -29,7 +30,8 @@ scale_color_oklab <- scale_colour_oklab
 #' @rdname scale_colour_oklab
 #' @export
 scale_fill_oklab <- function(low = "#132B43", high = "#56B1F7",
-                             n = 256, space = "oklab", ...) {
+                             n = 256, space = c("oklab", "oklch"), ...) {
+  space <- match.arg(space)
   pal <- if (space == "oklch") oklch_seq(low, high, n) else oklab_seq(low, high, n)
   ggplot2::scale_fill_gradientn(colours = pal, ...)
 }
@@ -47,7 +49,8 @@ scale_fill_oklab <- function(low = "#132B43", high = "#56B1F7",
 #' @export
 scale_colour_oklab_div <- function(low = "#2166AC", mid = "#F7F7F7",
                                    high = "#B2182B", n = 256,
-                                   space = "oklab", ...) {
+                                   space = c("oklab", "oklch"), ...) {
+  space <- match.arg(space)
   pal <- if (space == "oklch") {
     oklch_div(low, mid, high, n)
   } else {
@@ -64,7 +67,8 @@ scale_color_oklab_div <- scale_colour_oklab_div
 #' @export
 scale_fill_oklab_div <- function(low = "#2166AC", mid = "#F7F7F7",
                                  high = "#B2182B", n = 256,
-                                 space = "oklab", ...) {
+                                 space = c("oklab", "oklch"), ...) {
+  space <- match.arg(space)
   pal <- if (space == "oklch") {
     oklch_div(low, mid, high, n)
   } else {

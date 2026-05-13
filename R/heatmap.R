@@ -16,7 +16,8 @@
 #' pheatmap(mat, color = pheatmap_oklab("#1B0A55", "#FDE725"))
 #' }
 pheatmap_oklab <- function(low = "#132B43", high = "#56B1F7",
-                           n = 256, space = "oklab") {
+                           n = 256, space = c("oklab", "oklch")) {
+  space <- match.arg(space)
   if (space == "oklch") oklch_seq(low, high, n) else oklab_seq(low, high, n)
 }
 
@@ -31,7 +32,8 @@ pheatmap_oklab <- function(low = "#132B43", high = "#56B1F7",
 #' @export
 pheatmap_oklab_div <- function(low = "#2166AC", mid = "#F7F7F7",
                                high = "#B2182B", n = 256,
-                               space = "oklab") {
+                               space = c("oklab", "oklch")) {
+  space <- match.arg(space)
   if (space == "oklch") {
     oklch_div(low, mid, high, n)
   } else {
@@ -61,7 +63,8 @@ pheatmap_oklab_div <- function(low = "#2166AC", mid = "#F7F7F7",
 #' Heatmap(mat, col = col_fn)
 #' }
 cheatmap_oklab <- function(breaks, low = "#132B43", high = "#56B1F7",
-                           space = "oklab") {
+                           space = c("oklab", "oklch")) {
+  space <- match.arg(space)
   if (!requireNamespace("circlize", quietly = TRUE)) {
     stop("Package 'circlize' is required for cheatmap_oklab()", call. = FALSE)
   }
@@ -80,7 +83,9 @@ cheatmap_oklab <- function(breaks, low = "#132B43", high = "#56B1F7",
 #' @return A function compatible with ComplexHeatmap's `col` argument.
 #' @export
 cheatmap_oklab_div <- function(breaks, low = "#2166AC", mid = "#F7F7F7",
-                               high = "#B2182B", space = "oklab") {
+                               high = "#B2182B",
+                               space = c("oklab", "oklch")) {
+  space <- match.arg(space)
   if (!requireNamespace("circlize", quietly = TRUE)) {
     stop("Package 'circlize' is required for cheatmap_oklab_div()", call. = FALSE)
   }

@@ -11,18 +11,25 @@ cb_safe_nearest(col, severity = 1, min_dist = 0.02)
 
 \item{severity}{CVD severity (0-1, default 1 = full dichromacy).}
 
-\item{min_dist}{Minimum OKLAB distance between original and simulated
-versions (default 0.02). Colours already passing this threshold
-are returned unchanged.}
+\item{min_dist}{Maximum allowed OKLAB distance between the colour
+and its CVD-simulated versions (default 0.02). Colours already
+below this threshold are returned unchanged.}
 }
 \value{
 A hex colour string.
 }
 \description{
-Takes an arbitrary colour and adjusts its OKLCH hue so that it remains
-distinguishable under deuteranopia and protanopia simulation.
+Takes an arbitrary colour and adjusts its OKLCH hue so that it shifts
+as little as possible under deuteranopia and protanopia simulation
+(i.e. the colour looks similar to a CVD viewer as to a normal viewer).
 The adjustment minimises perceptual distance from the original colour
-in OKLAB space while ensuring the simulated versions stay distinct.
+in OKLAB space among hues whose simulated versions stay within
+\code{min_dist} of the candidate.
+}
+\details{
+This is a single-colour heuristic; for palettes use
+\code{\link{cb_safe_palette}} or \code{\link{cb_adjust}}, which
+enforce pairwise distinguishability.
 }
 \examples{
 cb_safe_nearest("#00CC00")  # green -> shifted to safer hue
